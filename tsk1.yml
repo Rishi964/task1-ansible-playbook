@@ -1,0 +1,74 @@
+- hosts: new
+  vars:
+          - pname: "httpd"
+          
+  tasks:
+          - name: add first repository
+            yum_repository:
+                    name: dvd1
+                    description: yum repo
+                    file: external_repos
+                    baseurl: file:///mnt/AppStream/
+                    gpgcheck: no
+
+          - name: add second repository
+            yum_repository:
+                    name: dvd2
+                    description: second yum repo
+                    file: external_repos
+                    baseurl: file:///mnt/BaseOS/
+                    gpgcheck: no
+
+          - name: add docker repository
+            yum_repository:
+                name: docker
+                description: docker yum repo
+                file: external_repos
+                baseurl: https://download.docker.com/linux/centos/7/x86_64/stable/
+                gpgcheck: no
+
+
+          - name: docker install
+            package:
+                name: "docker-ce-18.09.1*"
+                state: present
+                
+          - name: docker start
+            service:
+                 name: "docker"
+                 state: started
+                 enabled: yes
+                 
+          - name: install python
+             package:
+                 name: python3
+
+
+          - name: python library
+            pip:
+                  name: docker
+
+  
+          - name: pull httpd  image
+            docker_image:
+                  name: "{{ pname }}"
+                  source: pull
+    
+          - name: copy the webpage
+            copy:
+                  src: "/new/index.html"
+                  dest: "/new/"
+                  ignore_errors: yes
+      
+      
+          - name: run the container
+            docker_container:
+                 name: webserver
+                 state: started
+                 image: "{{ pname }}"
+                 exposed_ports:
+                           - "80"
+                 ports:
+                           - "8088:80"
+                 volumes:
+                           - /new/:/usr/local/apache2/htdocs/
